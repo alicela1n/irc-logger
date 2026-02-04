@@ -1,8 +1,29 @@
 from irc import *
 import os
 import platform
+import cherrypy
+from multiprocessing import Process
 
 version = "0.01"
+
+class web_logger(object):
+    @cherrypy.expose
+    def index(self):
+        return "Hello World"
+
+    @cherrypy.expose
+    def log(self, server="irc.oftc.net", channel='##alicela1n'):
+        html_block = ""
+        log_file = open(f"logs/{server}/{channel}.txt", "r")
+        for line in log_file:
+            html_block += f"{line}</br>"
+
+        print(html_block)
+
+        return html_block
+
+def run_cherrypy(server, channel, log_file):
+    cherrypy.quickstart(web_logger())
 
 def main():
     channel = "##alicela1n"
@@ -10,13 +31,17 @@ def main():
     nickname = "nanologger"
     description = "This is a bot that logs things"
 
-    irc = IRC()
-    irc.connect(server, channel, nickname, description)
-
     if not os.path.exists(f"logs/{server}"):
         os.mkdir(f"logs/{server}")
 
-    log_file = open(f"logs/{server}/{channel}.txt", "w")
+    log_file = open(f"logs/{server}/{channel}.txt", "a+")
+
+    # Initialize web server
+    web_server_proc = Process(target=run_cherrypy, args=(server, channel, log_file.read()), daemon=True)
+    web_server_proc.start()
+
+    irc = IRC()
+    irc.connect(server, channel, nickname, description)
 
     print(f"Logging to: logs/{server}/{channel}.txt")
 
