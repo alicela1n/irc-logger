@@ -22,22 +22,35 @@ class web_logger(object):
 
         return html_block
 
-def run_cherrypy(server, channel, log_file):
+class irc_connection:
+    def __init__(self, server, server_name, channel):
+        self.server = server
+        self.server_name = server_name
+        self.channel = channel
+        
+
+def run_cherrypy():
     cherrypy.quickstart(web_logger())
 
 def main():
+    irc_connections = []
     channel = "##alicela1n"
     server = "irc.oftc.net"
+    server_name = "OFTC"
+
+    irc_connections.append(irc_connection(server, server_name, channel))
+
+    # Bot specific information
     nickname = "nanologger"
     description = "This is a bot that logs things"
 
-    if not os.path.exists(f"logs/{server}"):
-        os.mkdir(f"logs/{server}")
+    if not os.path.exists(f"logs/{irc_connections[0].server_name}"):
+        os.mkdir(f"logs/{irc_connections[0].server_name}")
 
-    log_file = open(f"logs/{server}/{channel}.txt", "a+")
+    log_file = open(f"logs/{irc_connections[0].server_name}/{irc_connections[0].channel}.txt", "a+")
 
     # Initialize web server
-    web_server_proc = Process(target=run_cherrypy, args=(server, channel, log_file.read()), daemon=True)
+    web_server_proc = Process(target=run_cherrypy, daemon=True)
     web_server_proc.start()
 
     irc = IRC()
