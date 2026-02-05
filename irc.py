@@ -4,18 +4,23 @@ import sys
 class IRC:
     irc = socket.socket()
 
-    def __init__(self):
+    def __init__(self, server, channel, botnick, botdesc):
+        self.server = server
+        self.channel = channel
+        self.botnick = botnick
+        self.botdesc = botdesc
+
         self.irc = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def send(self, channel, message):
-            self.irc.send(f"PRIVMSG {channel} {message}\n".encode('utf-8'))
+    def send(self, message):
+            self.irc.send(f"PRIVMSG {self.channel} {message}\n".encode('utf-8'))
 
-    def connect(self, server, channel, botnick, botdesc):
-        print(f"Connecting to {server}")
-        self.irc.connect((server, 6667))
-        self.irc.send(f"USER {botnick} {botnick} {botnick} :{botdesc}\n".encode('utf-8'))
-        self.irc.send(f"NICK {botnick}\n".encode('utf-8'))
-        self.irc.send(f"JOIN {channel}\n".encode('utf-8'))
+    def connect(self):
+        print(f"Connecting to {self.server}")
+        self.irc.connect((self.server, 6667))
+        self.irc.send(f"USER {self.botnick} {self.botnick} {self.botnick} :{self.botdesc}\n".encode('utf-8'))
+        self.irc.send(f"NICK {self.botnick}\n".encode('utf-8'))
+        self.irc.send(f"JOIN {self.channel}\n".encode('utf-8'))
 
     def get_text(self):
         text = self.irc.recv(2020)
