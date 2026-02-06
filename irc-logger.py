@@ -2,6 +2,8 @@ from irc import *
 import os
 import platform
 import cherrypy
+import yaml
+import argparse
 from multiprocessing import Process
 
 version = "0.01"
@@ -18,6 +20,16 @@ class web_logger(object):
         css = f"""body {{
                         color: #660033;
                         background-color:  #ffffb3;
+                  }}
+
+                  .name {{
+                        color: #EB3562;
+                        display: inline;
+                  }}
+
+                  .msg {{
+                        color: #660033;
+                        display: inline;
                   }}
                """
         header = f"""<html>\n
@@ -38,14 +50,25 @@ class web_logger(object):
                 name = name.lstrip(":")
                 message = line_segments[1].split(f"PRIVMSG {channel} :", 1)
                 message = message[1]
-                print(f"{name}\n {message}")
-                html_block += f"""&lt;{name}&gt; {message}</br>\n"""
+                html_block += f"""<div class="name">&lt;{name}&gt;</div> <div class="msg">{message}</div></br>\n"""
+            elif "JOIN" in line and f"{channel}" in line:
+                line_segments = line.split("!", 1)
+                name = line_segments[0]
+                name = name.lstrip(":")
+                html_block += f"""<div class="name">&#8594 {name}</div> <div class="msg"> joined this channel</div></br>\n"""
+            elif "QUIT" in line and f"{channel}" in line:
+                line_segments = line.split("!", 1)
+                name = line_segments[0]
+                name = name.lstrip(":")
+                html_block += f"""<div class="name">&#8592 {name}</div> <div class="msg"> left this channel</div></br>\n"""
+
 
         html_block += f"""</body>\n"""
         html_site = header + html_block + footer
         return html_site
 
 class irc_connection(IRC):
+    proc = None
     def __init__(self, server, server_name, channel, nickname, description):
         super().__init__(server, channel, nickname, description)
         super().connect()
@@ -56,40 +79,59 @@ class irc_connection(IRC):
         self.log_dir = f"logs/{self.server_name}"
         self.log_name = f"logs/{self.server_name}/{self.channel}.txt"
 
+        # Create the log directory if it doesn't exist
+        if not os.path.exists(self.log_dir):
+            os.mkdir(self.log_dir)
+
+        self.log_file = open(self.log_name, "a+")
+
+    def write_log(self):
+        text = super().get_text()
+        self.log_file.write(text.decode())
+        self.log_file.flush()
+
+    def loop(self):
+        while True:
+            self.write_log()
+
+
+# Command line argument parser
+parser = argparse.ArgumentParser()
+parser.add_argument("servers_file", type=str, help="A yaml file containing servers and channels to load into the logger")
+
+# run_cherrypy(): Function to run web service
 def run_cherrypy():
     cherrypy.quickstart(web_logger())
 
 def main():
+    args = parser.parse_args()
+    servers_file_path = args.servers_file
+    
+    with open(servers_file_path, 'r') as server_file:
+        servers = yaml.safe_load(server_file)
+
     irc_connections = []
-    channel = "##alicela1n"
-    server = "irc.oftc.net"
-    server_name = "OFTC"
 
     # Bot specific information
     nickname = "nanologger"
     description = "This is a bot that logs things"
 
-    irc_connections.append(irc_connection(server, server_name, channel, nickname, description))
+    for server in servers:
+        server_url = server['url']
+        server_name = server['name']
 
-    if not os.path.exists(f"logs/{irc_connections[0].server_name}"):
-        os.mkdir(f"{irc_connections[0].log_dir}")
-
-    log_file = open(f"{irc_connections[0].log_name}", "a+")
+        for channel in server['channels']:
+            irc_connections.append(irc_connection(server_url, server_name, channel, nickname, description))
 
     # Initialize web server
     web_server_proc = Process(target=run_cherrypy, daemon=True)
     web_server_proc.start()
 
-    print(f"Logging to: {irc_connections[0].log_dir}")
-
-    # Main loop
-    while True:
-        text = irc_connections[0].get_text()
-        log_file.write(text.decode())
-        log_file.flush()
-
-        if "PRIVMSG" in text.decode() and channel in text.decode() and "!loggerinfo" in text.decode():
-            irc_connections[0].send(f"{nickname} {version} Running on {platform.node()} {platform.system()} {platform.release()}")
+    connection_processes = []
+    # Log each connection
+    for connection in irc_connections:
+        connection.proc = Process(target=connection.loop(), daemon=True)
+        connection.proc.start()
 
 if __name__ == "__main__":
     main()
