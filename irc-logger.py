@@ -9,14 +9,71 @@ from multiprocessing import Process
 
 version = "0.01"
 
-class web_logger(object):
+class Server(object):
+    name = None
+    channel = None
+    def __init__(self, name, channel):
+        self.name = name
+        self.channel = channel
+
+class Web_Logger(object):
+    logs_dir = f"logs"
+    server_dirs = os.listdir(f"{logs_dir}")
+    server_dirs = list(filter(lambda a:a != ".DS_Store", server_dirs))
+    servers = []
+    for server_name in server_dirs:
+        channel = os.listdir(f"{logs_dir}/{server_name}")
+        channel = list(filter(lambda a:a != ".DS_Store", channel))
+        servers.append(Server(server_name, channel))
+
+    css = f"""body {{
+                color: #660033;
+                background-color:  #ffffb3;
+          }}
+
+          .time {{
+                color: #660033;
+                display: inline;
+          }}
+        
+          .name {{
+                color: #EB3562;
+                display: inline;
+          }}
+
+          .msg {{
+                color: #660033;
+                display: inline;
+          }}
+       """
+
+    header = f"""<html>\n
+                     <head>\n
+                     <style>\n
+                            {css}\n
+                     </style>\n
+                     </head>\n
+              """
+    footer = f"""</html>\n"""
+
     @cherrypy.expose
     def index(self):
-        return "Hello World"
+        html_block = f"""<body>\n"""
+        for server in self.servers:
+            html_block += f"""<div class="server">{server.name}</div>"""
+            html_block += f"""<ul>"""
+            for channel in server.channel:
+                channel_name = channel.replace("#", "%23")
+                html_block += f"""<li><div class="server"><a href="/log?server={server.name}&channel={channel_name}">{channel}</a></div></li>"""
+            html_block += f"""</ul>"""
+        
+        html_block += f"""</body>\n"""
+        html_site = self.header + html_block + self.footer
+        return html_site
 
     @cherrypy.expose
     def log(self, server, channel, date="Today"):
-        log_dir = f"logs/{server}/{channel}"
+        log_dir = f"{self.logs_dir}/{server}/{channel}"
         # Get log files
         log_files = os.listdir(f"{log_dir}") # List the log files in the server directory
         log_files = sorted(log_files, key=lambda a:os.path.getmtime(os.path.join(f"{log_dir}", a))) # Sort by modified time
@@ -40,35 +97,6 @@ class web_logger(object):
         
         log_file = open(f"{log_dir}/{channel}-{date}.txt", "r")
 
-        html_block = ""
-        css = f"""body {{
-                        color: #660033;
-                        background-color:  #ffffb3;
-                  }}
-
-                  .time {{
-                        color: #660033;
-                        display: inline;
-                  }}
-                
-                  .name {{
-                        color: #EB3562;
-                        display: inline;
-                  }}
-
-                  .msg {{
-                        color: #660033;
-                        display: inline;
-                  }}
-               """
-        header = f"""<html>\n
-                         <head>\n
-                         <style>\n
-                                {css}\n
-                         </style>\n
-                         </head>\n
-                  """
-        footer = f"""</html>\n"""
         html_block = f"""<body>\n"""
 
         # Process the log file line by line
@@ -99,12 +127,11 @@ class web_logger(object):
                 name = name.lstrip(":")
                 html_block += f"""<div class="time">{time}</div> <div class="name">&#8592 {name}</div> <div class="msg"> left this channel</div></br>\n"""
 
-
         html_block += f"""</body>\n"""
-        html_site = header + html_block + footer
+        html_site = self.header + html_block + self.footer
         return html_site
 
-class irc_connection(IRC):
+class IRC_Connection(IRC):
     proc = None
     date = datetime.datetime.now()
     def __init__(self, server, server_name, channel, nickname, description):
@@ -158,7 +185,7 @@ parser.add_argument("servers_file", type=str, help="A yaml file containing serve
 
 # run_cherrypy(): Function to run web service
 def run_cherrypy():
-    cherrypy.quickstart(web_logger())
+    cherrypy.quickstart(Web_Logger())
 
 # main(): Main function
 def main():
@@ -179,7 +206,7 @@ def main():
         server_name = server['name']
 
         for channel in server['channels']:
-            irc_connections.append(irc_connection(server_url, server_name, channel, nickname, description))
+            irc_connections.append(IRC_Connection(server_url, server_name, channel, nickname, description))
 
     # Initialize web server
     web_server_proc = Process(target=run_cherrypy, daemon=True)
