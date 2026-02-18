@@ -3,8 +3,3 @@
   url: irc.oftc.net
   channels:
     - '##alicela1n'
-- localhost:
-  name: localhost
-  url: localhost
-  channels:
-    - '#test'

@@ -1,5 +1,6 @@
 import socket
 import sys
+import datetime
 
 class IRC:
     irc = socket.socket()
@@ -23,7 +24,8 @@ class IRC:
         self.irc.send(f"JOIN {self.channel}\n".encode('utf-8'))
 
     def get_text(self):
-        text = self.irc.recv(2020)
-        if text.decode().find('PING'):
-            self.irc.send(f"PONG {text.decode().split()[1]}\r\n".encode('utf-8')) 
+        text = self.irc.recv(2020).decode()
+        text = f"{text}"
+        if text.find("PING") != -1:
+            self.irc.send(f"PONG {text.split()[1]} \r\n".encode('utf-8'))
         return text
