@@ -65,7 +65,7 @@ class Web_Logger(object):
         return html_site
 
     @cherrypy.expose
-    def log(self, server, channel, date="Today"):
+    def log(self, server, channel, date="Newest"):
         log_dir = f"{self.logs_dir}/{server}/{channel}"
         # Get log files
         log_files = os.listdir(f"{log_dir}") # List the log files in the server directory
