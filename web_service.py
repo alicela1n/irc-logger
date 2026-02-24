@@ -70,7 +70,7 @@ class Web_Logger(object):
         # Get log files
         log_files = os.listdir(f"{log_dir}") # List the log files in the server directory
         log_files = sorted(log_files, key=lambda a:os.path.getmtime(os.path.join(f"{log_dir}", a))) # Sort by modified time
-        log_files = list(filter(lambda a:a != ".DS_Store", log_files)) # Filter out .DS_Store (thanks Apple)
+        log_files = list(filter(lambda a:channel in a, log_files)) # Filter for just files containing the channel name
 
         if os.path.isfile(f"{log_dir}/{channel}-{date}.txt") == -1:
             date = "Newest"
