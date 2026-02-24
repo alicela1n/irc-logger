@@ -16,7 +16,7 @@ class Web_Logger(object):
     servers = []
     for server_name in server_dirs:
         channel = os.listdir(f"{logs_dir}/{server_name}")
-        channel = list(filter(lambda a:a != ".DS_Store", channel))
+        channel = list(filter(lambda a:(a.startswith("#")), channel))
         servers.append(Server(server_name, channel))
 
     css = f"""body {{
