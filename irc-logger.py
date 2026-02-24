@@ -1,5 +1,5 @@
 from irc import *
-from web_logger import *
+from web_service import *
 import os
 import platform
 import cherrypy
@@ -11,13 +11,13 @@ from multiprocessing import Process
 version = "0.01"
 
 class IRC_Connection(IRC):
-    proc = None
     date = datetime.datetime.now()
+    connection_process = None
+    log_process = None
     def __init__(self, server, server_name, channel, nickname, description):
-        super().__init__(server, channel, nickname, description)
-        super().connect()
         date = datetime.datetime.now() # Initial datetime element
 
+        # Populate variables
         self.server = server
         self.server_name = server_name
         self.channel = channel
@@ -29,6 +29,13 @@ class IRC_Connection(IRC):
             os.mkdir(self.log_dir)
 
         self.log_file = open(self.log_name, "a+")
+
+        # Initialize and start processes
+        super().__init__(server, channel, nickname, description)
+        self.connection_process = Process(target=super().connect(), daemon=True)
+        self.log_process = Process(target=self.loop(), daemon=True)
+        self.connection_process.start()
+        self.log_process.start()
 
     def write_log(self):
         text = super().get_text()
@@ -70,7 +77,9 @@ def main():
     with open(servers_file_path, 'r') as server_file:
         servers = yaml.safe_load(server_file)
 
-    irc_connections = []
+    # Initialize web server
+    web_server_proc = Process(target=run_cherrypy, daemon=True)
+    web_server_proc.start()
 
     # Bot specific information
     nickname = "nanologger"
@@ -80,18 +89,11 @@ def main():
         server_url = server['url']
         server_name = server['name']
 
+        irc_connections = []
         for channel in server['channels']:
             irc_connections.append(IRC_Connection(server_url, server_name, channel, nickname, description))
 
-    # Initialize web server
-    web_server_proc = Process(target=run_cherrypy, daemon=True)
-    web_server_proc.start()
 
-    connection_processes = []
-    # Log each connection
-    for connection in irc_connections:
-        connection.proc = Process(target=connection.loop(), daemon=True)
-        connection.proc.start()
 
 if __name__ == "__main__":
     main()
