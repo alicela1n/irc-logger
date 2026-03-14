@@ -24,6 +24,21 @@ class Web_Logger(object):
                 background-color:  #ffffb3;
           }}
 
+          .sidebar {{
+                margin: 0;
+                padding: 0;
+                width: 200px;
+                position: fixed;
+                height: 100%;
+                overflow: auto;
+          }}
+
+          .content {{
+                margin-left: 200px;
+                padding: 1px 16px;
+                height: 1000px;
+          }}
+
           .time {{
                 color: #660033;
                 display: inline;
@@ -92,7 +107,18 @@ class Web_Logger(object):
 
         html_block = f"""<body>\n"""
 
+        html_block += f"<div class=\"sidebar\">"
+        for server in self.servers:
+            html_block += f"""<div class="server">{server.name}</div>"""
+            html_block += f"""<ul>"""
+            for channel in server.channel:
+                channel_name = channel.replace("#", "%23")
+                html_block += f"""<li><div class="server"><a href="/log?server={server.name}&channel={channel_name}">{channel}</a></div></li>"""
+            html_block += f"""</ul>"""
+        html_block += f"</div>"
+
         # Process the log file line by line
+        html_block += f"<div class=\"content\">"
         for line in log_file:
             if line.startswith(date):
                 # Get just the time
@@ -119,6 +145,8 @@ class Web_Logger(object):
                 name = line_segments[0]
                 name = name.lstrip(":")
                 html_block += f"""<div class="time">{time}</div> <div class="name">&#8592 {name}</div> <div class="msg"> left this channel</div></br>\n"""
+        
+        html_block += f"</div>"
 
         html_block += f"""</body>\n"""
         html_site = self.header + html_block + self.footer
