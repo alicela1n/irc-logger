@@ -46,6 +46,9 @@ class IRC_Connection(IRC):
         self.server_log_file = open(self.server_log_name, "a+")
 
         for channel in self.channels:
+            if not os.path.exists(f"{self.log_dir}/{channel}"):
+                os.mkdir(f"{self.log_dir}/{channel}")
+
             log = channel_log(self.server_name, channel, self.log_dir, self.date.strftime("%m-%d-%Y"))
             self.channel_logs[channel] = log
 
