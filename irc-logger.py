@@ -10,6 +10,7 @@ from multiprocessing import Process
 
 version = "0.01"
 
+# The channel_log object is an easy way to keep track of the log file that is open and in use.
 class channel_log():
     server = None
     channel = None
@@ -65,10 +66,13 @@ class IRC_Connection(IRC):
             for entry in text_list:
                 # Filter out blank lines
                 if entry != "":
+                    # I have it add the date before each log entry so each entry is time stamped, this date gets parsed and displayed by the web service.
                     self.server_log_file.write(f"{datetime.datetime.now().strftime("%m-%d-%Y %H:%M:%S |")} {entry}")
                     self.server_log_file.flush()
+
                     for channel in self.channels:
                         if channel in entry:
+                            # I'm filtering out PRIVMSG, JOIN, and QUIT from the channel log entries and disregarding any irrelevant noise.
                             if "PRIVMSG" in entry and channel in entry or "JOIN" in entry and channel in entry or "QUIT" in entry and channel in entry:
                                 self.channel_logs[channel].file.write(f"{datetime.datetime.now().strftime("%m-%d-%Y %H:%M:%S |")} {entry}")
                                 self.channel_logs[channel].file.flush()
