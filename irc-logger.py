@@ -7,6 +7,7 @@ import yaml
 import argparse
 import datetime
 from multiprocessing import Process
+import threading
 
 version = "0.01"
 
@@ -24,13 +25,13 @@ class channel_log():
 
 class IRC_Connection(IRC):
     date = datetime.datetime.now()
-    connection_process = None
-    log_process = None
+    thread = None
     channels = []
     server_log_file = None
     channel_logs = {}
 
     def __init__(self, server, server_name, channels, nickname, description):
+        super().__init__(server, channels, nickname, description)
         date = datetime.datetime.now() # Initial datetime element
 
         # Populate variables
@@ -53,10 +54,9 @@ class IRC_Connection(IRC):
             log = channel_log(self.server_name, channel, self.log_dir, self.date.strftime("%m-%d-%Y"))
             self.channel_logs[channel] = log
 
-        # Initialize and start processes
-        super().__init__(server, channels, nickname, description)
-        self.connection_process = Process(target=super().connect(), daemon=True)
-        self.log_process = Process(target=self.loop(), daemon=True)
+        # Initialize threads to be started
+        print(f"Initializing loop for {server}")
+        self.thread = threading.Thread(target=self.loop)
 
     def write_log(self):
         text = super().get_text()
@@ -83,6 +83,8 @@ class IRC_Connection(IRC):
             self.server_log_file.flush()
 
     def loop(self):
+        super().connect()
+
         while True:
             old_date = self.date
             self.date = datetime.datetime.now()
@@ -111,6 +113,7 @@ def main():
         servers = yaml.safe_load(server_file)
 
     # Initialize web server
+    print("Initializing web process")
     web_server_proc = Process(target=run_cherrypy, daemon=True)
     web_server_proc.start()
 
@@ -126,10 +129,10 @@ def main():
 
         irc_connections.append(IRC_Connection(server_url, server_name, server_channels, nickname, description))
 
-        # Start each process
-        for connections in irc_connections:
-            connection.connection_process.start()
-            connection.log_process.start()
+    # Start each thread
+    for connection in irc_connections:
+        print(f"Starting connection {connection}")
+        connection.thread.start()
 
 if __name__ == "__main__":
     main()
