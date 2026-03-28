@@ -23,6 +23,7 @@ class channel_log():
         self.date = date
         self.file = open(f"{dir}/{self.channel}/{self.channel}-{self.date}.txt", "a+")
 
+# The IRC_Connection object was created to roll connection and logging functionality into one unified interface which uses threads for each connection
 class IRC_Connection(IRC):
     date = datetime.datetime.now()
     thread = None

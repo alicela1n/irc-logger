@@ -9,7 +9,9 @@ class Server(object):
         self.name = name
         self.channel = channel
 
+# Web Logger object is used to serve a web page with the log files
 class Web_Logger(object):
+    # DO NOT PUT FILES IN THE LOGS DIRECTORY OR ANY SUB DIRECTORIES, THAT IS RESERVED FOR THE LOGGER
     logs_dir = f"logs"
     server_dirs = os.listdir(f"{logs_dir}")
     server_dirs = list(filter(lambda a:a != ".DS_Store", server_dirs))
@@ -24,7 +26,7 @@ class Web_Logger(object):
                 background-color:  #ffffb3;
           }}
 
-          .sidebar {{
+          .left_sidebar {{
                 margin: 0;
                 padding: 0;
                 width: 200px;
@@ -107,7 +109,7 @@ class Web_Logger(object):
 
         html_block = f"""<body>\n"""
 
-        html_block += f"<div class=\"sidebar\">"
+        html_block += f"<div class=\"left_sidebar\">"
         for server in self.servers:
             html_block += f"""<div class="server">{server.name}</div>"""
             html_block += f"""<ul>"""
