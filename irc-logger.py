@@ -21,7 +21,10 @@ class channel_log():
         self.server = server
         self.channel = channel
         self.date = date
-        self.file = open(f"{dir}/{self.channel}/{self.channel}-{self.date}.txt", "a+")
+        try:
+            self.file = open(f"{dir}/{self.channel}/{self.channel}-{self.date}.txt", "a+")
+        except FileNotFoundError:
+            print(f"{type(self).__name__}: Error: Could not open file! Check if file exists!")
 
 # The IRC_Connection object was created to roll connection and logging functionality into one unified interface which uses threads for each connection
 class IRC_Connection(IRC):
@@ -46,7 +49,10 @@ class IRC_Connection(IRC):
         if not os.path.exists(self.log_dir):
             os.mkdir(self.log_dir)
 
-        self.server_log_file = open(self.server_log_name, "a+")
+        try:
+            self.server_log_file = open(self.server_log_name, "a+")
+        except FileNotFoundError:
+            print(f"{type(self).__name__}: Error: Could not open file! Check if file exists!")
 
         for channel in self.channels:
             if not os.path.exists(f"{self.log_dir}/{channel}"):
@@ -110,11 +116,14 @@ def main():
     args = parser.parse_args()
     servers_file_path = args.servers_file
     
-    with open(servers_file_path, 'r') as server_file:
-        servers = yaml.safe_load(server_file)
+    try:
+        with open(servers_file_path, 'r') as server_file:
+            servers = yaml.safe_load(server_file)
+    except FileNotFoundError:
+        print("main(): Error: could not open file! Check if file exists!")
 
     # Initialize web server
-    print("Initializing web process")
+    print("main(): Initializing web process")
     web_server_proc = Process(target=run_cherrypy, daemon=True)
     web_server_proc.start()
 
@@ -132,8 +141,11 @@ def main():
 
     # Start each thread
     for connection in irc_connections:
-        print(f"Starting connection {connection}")
-        connection.thread.start()
+        try:
+            print(f"main(): Starting connection {connection}")
+            connection.thread.start()
+        except:
+            print(f"main(): Error: Failed to start {connection}")
 
 if __name__ == "__main__":
     main()
